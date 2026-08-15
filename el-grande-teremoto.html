@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EL GRANDE TEREMOTO — Family Earthquake Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --ink:#0F1A22;
+    --ink-2:#16232D;
+    --paper:#F5F1E7;
+    --paper-2:#EDE7D8;
+    --signal:#C1442E;
+    --amber:#D9922B;
+    --teal:#1F6F5C;
+    --teal-soft:#E4EFE9;
+    --slate:#5C6773;
+    --line:rgba(15,26,34,0.12);
+    --line-light:rgba(245,241,231,0.16);
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.55;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;margin:0;letter-spacing:-0.01em;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  p{margin:0;}
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px;}
+  @media(max-width:640px){.wrap{padding:0 20px;}}
+
+  /* ---------- MOBILE BASE READABILITY ---------- */
+  @media(max-width:640px){
+    body{font-size:15px;}
+    section{padding:56px 0;}
+    .section-head{margin-bottom:32px;}
+    .section-head h2{font-size:26px;}
+    .section-head p{font-size:14.5px;}
+  }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:100;
+    background:var(--ink);
+    color:var(--paper);
+    border-bottom:1px solid var(--line-light);
+  }
+  .topbar-inner{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;max-width:1120px;margin:0 auto;gap:12px;
+  }
+  @media(max-width:480px){
+    .topbar-inner{padding:12px 16px;}
+    .brand-text{font-size:12px;}
+    .brand-text small{font-size:9px;}
+    .langtoggle button{padding:6px 11px;font-size:10px;}
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:11px;height:11px;border-radius:50%;
+    background:var(--signal);
+    position:relative;flex:none;
+  }
+  .brand-mark::after{
+    content:'';position:absolute;inset:-5px;border-radius:50%;
+    border:1px solid var(--signal);opacity:0.5;
+    animation:pulseRing 2.2s ease-out infinite;
+  }
+  @keyframes pulseRing{
+    0%{transform:scale(0.6);opacity:0.7;}
+    100%{transform:scale(2.6);opacity:0;}
+  }
+  .brand-text{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;}
+  .brand-text small{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:10px;letter-spacing:0.08em;color:#9AA7AF;text-transform:none;margin-top:1px;}
+
+  nav.tabs{display:flex;gap:22px;}
+  nav.tabs a{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;
+    text-decoration:none;color:#B9C2C7;padding-bottom:3px;border-bottom:1px solid transparent;
+    transition:color .15s ease, border-color .15s ease;
+    white-space:nowrap;
+  }
+  nav.tabs a:hover{color:var(--paper);border-color:var(--amber);}
+  @media(max-width:860px){nav.tabs{display:none;}}
+
+  .langtoggle{
+    display:flex;border:1px solid var(--line-light);border-radius:20px;overflow:hidden;flex:none;
+  }
+  .langtoggle button{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.05em;
+    background:transparent;color:#B9C2C7;border:none;padding:7px 14px;cursor:pointer;
+    transition:background .15s ease,color .15s ease;
+  }
+  .langtoggle button.active{background:var(--amber);color:var(--ink);font-weight:600;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    background:radial-gradient(ellipse at 50% 0%, #1B2C38 0%, var(--ink) 55%);
+    color:var(--paper);
+    padding:96px 28px 88px;
+    position:relative;
+    overflow:hidden;
+    text-align:center;
+  }
+  .epicenter{
+    position:relative;width:220px;height:220px;margin:0 auto 36px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  @media(max-width:640px){
+    .hero{padding:64px 20px 56px;}
+    .epicenter{width:150px;height:150px;margin-bottom:24px;}
+    .hero .tag{font-size:14.5px;padding:0 6px;}
+    .hero .cta{margin-top:30px;padding:13px 22px;font-size:11px;}
+    .eyebrow{font-size:10.5px;padding:0 10px;line-height:1.5;}
+  }
+  .epicenter .dot{
+    width:10px;height:10px;border-radius:50%;background:var(--signal);
+    box-shadow:0 0 0 4px rgba(193,68,46,0.25);
+    z-index:2;
+  }
+  .epicenter .ring{
+    position:absolute;border:1px solid var(--amber);border-radius:50%;
+    top:50%;left:50%;transform:translate(-50%,-50%);
+    opacity:0;
+    animation:shockwave 3.6s cubic-bezier(.2,.6,.35,1) infinite;
+  }
+  .epicenter .ring.r2{animation-delay:1.2s;}
+  .epicenter .ring.r3{animation-delay:2.4s;}
+  @keyframes shockwave{
+    0%{width:14px;height:14px;opacity:0.9;border-color:var(--signal);}
+    70%{opacity:0.35;border-color:var(--amber);}
+    100%{width:220px;height:220px;opacity:0;border-color:var(--amber);}
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;
+    color:var(--amber);margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:clamp(40px,8vw,84px);font-weight:700;line-height:0.98;
+    color:var(--paper);
+  }
+  .hero h1 .sub{
+    display:block;font-size:clamp(18px,3vw,28px);font-weight:500;color:#B9C2C7;margin-top:14px;letter-spacing:0.01em;
+  }
+  .hero .tag{
+    max-width:560px;margin:26px auto 0;color:#C7CFD3;font-size:16px;
+  }
+  .hero .cta{
+    display:inline-flex;align-items:center;gap:8px;margin-top:40px;
+    background:var(--amber);color:var(--ink);text-decoration:none;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;
+    padding:14px 26px;border-radius:2px;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .hero .cta:hover{background:#EDA845;transform:translateY(-1px);}
+
+  /* ---------- STATUS STRIP ---------- */
+  .status{
+    background:var(--teal);color:#EAF3EF;
+    padding:0;border-bottom:1px solid rgba(0,0,0,0.08);
+  }
+  .status-inner{
+    max-width:1120px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);
+  }
+  .status-item{
+    padding:20px 22px;border-right:1px solid rgba(255,255,255,0.14);
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .status-item:last-child{border-right:none;}
+  .status-item .k{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#BFE0D4;}
+  .status-item .v{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;}
+  .status-item .v::before{content:'✓ ';color:#9FE0C4;}
+  @media(max-width:760px){
+    .status-inner{grid-template-columns:repeat(2,1fr);}
+    .status-item{border-bottom:1px solid rgba(255,255,255,0.14);}
+  }
+  @media(max-width:480px){
+    .status-item{padding:16px;}
+    .status-item .v{font-size:14.5px;}
+  }
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:84px 0;border-bottom:1px solid var(--line);}
+  section.dark{background:var(--ink);color:var(--paper);border-bottom:1px solid var(--line-light);}
+  .section-head{margin-bottom:48px;max-width:640px;}
+  .section-head .num{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--signal);letter-spacing:0.1em;margin-bottom:10px;display:block;
+  }
+  section.dark .section-head .num{color:var(--amber);}
+  .section-head h2{font-size:clamp(26px,4vw,38px);}
+  .section-head p{margin-top:14px;color:var(--slate);font-size:16px;}
+  section.dark .section-head p{color:#AAB5BC;}
+
+  /* protocol steps */
+  .protocol{list-style:none;margin:0;padding:0;counter-reset:step;}
+  .protocol li{
+    counter-increment:step;
+    display:grid;grid-template-columns:56px minmax(0,1fr);gap:18px;
+    padding:24px 0;border-top:1px solid var(--line);
+    align-items:start;
+  }
+  section.dark .protocol li{border-top:1px solid var(--line-light);}
+  .protocol li:last-child{border-bottom:none;}
+  .protocol li::before{
+    content:counter(step,decimal-leading-zero);
+    font-family:'IBM Plex Mono',monospace;font-size:20px;color:var(--signal);font-weight:500;
+    grid-column:1;grid-row:1 / span 2;line-height:1.3;
+  }
+  section.dark .protocol li::before{color:var(--amber);}
+  .protocol h4{grid-column:2;font-size:17px;margin-bottom:6px;line-height:1.3;}
+  .protocol p{grid-column:2;color:var(--slate);font-size:14.5px;line-height:1.55;}
+  section.dark .protocol p{color:#AEB8BF;}
+  @media(max-width:560px){
+    .protocol li{grid-template-columns:40px minmax(0,1fr);gap:14px;padding:20px 0;}
+    .protocol li::before{font-size:16px;}
+    .protocol h4{font-size:16px;}
+    .protocol p{font-size:14px;}
+  }
+
+  /* two column layout helper */
+  .grid2{display:grid;grid-template-columns:1.1fr 0.9fr;gap:56px;}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr;}}
+
+  /* meetup */
+  #map{height:340px;border:1px solid var(--line);filter:grayscale(0.15);}
+  .meet-card{
+    background:var(--paper-2);border:1px solid var(--line);padding:28px;
+  }
+  .meet-card .loc{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;margin-bottom:6px;}
+  .meet-card .addr{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--slate);margin-bottom:20px;}
+  .meet-list{list-style:none;margin:0;padding:0;}
+  .meet-list li{
+    display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:14.5px;line-height:1.5;
+  }
+  @media(max-width:640px){
+    #map{height:260px;}
+    .meet-card{padding:22px;}
+    .meet-card .loc{font-size:21px;}
+  }
+  .meet-list li:first-child{border-top:none;}
+  .meet-list .bullet{color:var(--teal);flex:none;font-weight:700;}
+
+  /* roles */
+  .roles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+  .role-card{background:var(--paper);padding:26px;}
+  .role-card h4{font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--signal);font-family:'IBM Plex Mono',monospace;margin-bottom:14px;}
+  .names{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .name-chip{
+    background:var(--ink);color:var(--paper);font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;
+    padding:6px 12px;border-radius:20px;
+  }
+  .role-card .desc{color:var(--slate);font-size:14px;}
+  .role-card .note{
+    margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);
+    font-size:13px;color:var(--teal);font-weight:600;
+  }
+  @media(max-width:860px){.roles-grid{grid-template-columns:1fr;}}
+  @media(max-width:640px){
+    .role-card{padding:22px;}
+    .name-chip{font-size:13px;padding:5px 11px;}
+  }
+
+  /* watch rotation */
+  .watch-band{
+    display:flex;align-items:center;gap:18px;background:var(--paper-2);border:1px solid var(--line);padding:22px 26px;margin-top:26px;
+  }
+  .watch-band .icon{
+    width:40px;height:40px;border-radius:50%;border:1px solid var(--signal);flex:none;
+    display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .watch-band .icon::after{
+    content:'';position:absolute;inset:-6px;border-radius:50%;border:1px solid rgba(193,68,46,0.4);
+    animation:pulseRing 2.6s ease-out infinite;
+  }
+  .watch-band .icon svg{width:18px;height:18px;stroke:var(--signal);}
+  @media(max-width:640px){
+    .watch-band{padding:18px;gap:14px;}
+    .watch-band p{font-size:14px;line-height:1.5;}
+  }
+
+  /* checklist */
+  .checklist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:0 40px;}
+  .checklist li{
+    display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:14.5px;
+  }
+  .checklist li:nth-child(-n+1),.checklist li:nth-child(9){border-top:none;}
+  @media(max-width:640px){.checklist{grid-template-columns:1fr;} .checklist li:nth-child(9){border-top:1px solid var(--line);}}
+  @media(max-width:640px){.checklist li{font-size:14px;padding:10px 0;}}
+  .checklist input[type=checkbox]{
+    appearance:none;width:17px;height:17px;border:1.5px solid var(--slate);flex:none;margin-top:2px;cursor:pointer;position:relative;
+  }
+  .checklist input[type=checkbox]:checked{background:var(--teal);border-color:var(--teal);}
+  .checklist input[type=checkbox]:checked::after{
+    content:'';position:absolute;left:5px;top:1px;width:4px;height:9px;border:solid white;border-width:0 2px 2px 0;transform:rotate(45deg);
+  }
+  .checklist label{cursor:pointer;}
+  .checklist input:checked + label{color:var(--slate);text-decoration:line-through;}
+
+  /* live feed */
+  .live-badge{
+    display:inline-flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;
+    letter-spacing:0.08em;text-transform:uppercase;color:#EDA845;margin-bottom:10px;
+  }
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--signal);position:relative;}
+  .live-dot::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--signal);animation:pulseRing 1.6s ease-out infinite;}
+  #map-live{height:380px;border:1px solid var(--line-light);margin-bottom:26px;}
+  .feed-cols{display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+  @media(max-width:860px){.feed-cols{grid-template-columns:1fr;gap:36px;}}
+  .feed-list{list-style:none;margin:0;padding:0;}
+  .feed-list li{
+    padding:14px 0;border-top:1px solid var(--line-light);display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;font-size:13.5px;
+  }
+  .feed-place{overflow-wrap:break-word;}
+  @media(max-width:640px){
+    #map-live{height:280px;}
+    .feed-list li{grid-template-columns:38px minmax(0,1fr);font-size:13px;row-gap:4px;}
+    .feed-time{grid-column:2;font-size:10.5px;}
+  }
+  .feed-list li:first-child{border-top:none;}
+  .feed-mag{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;padding:3px 0;text-align:center;border-radius:2px;}
+  .feed-place{color:#D7DDE0;}
+  .feed-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8B979D;white-space:nowrap;}
+  .feed-status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8B979D;margin-bottom:14px;}
+
+  /* resources */
+  .res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+  .res-card{background:var(--paper);padding:24px;}
+  .res-card .name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;margin-bottom:4px;}
+  .res-card .desc{font-size:13px;color:var(--slate);margin-bottom:14px;min-height:34px;}
+  .res-card a.tel{
+    font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:var(--signal);text-decoration:none;
+  }
+  @media(max-width:860px){.res-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:560px){
+    .res-grid{grid-template-columns:1fr;}
+    .res-card{padding:20px;}
+    .res-card .desc{min-height:0;margin-bottom:10px;}
+  }
+
+  footer{
+    background:var(--ink);color:#8B979D;padding:36px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:0.04em;
+  }
+  footer strong{color:var(--paper);}
+
+  ::selection{background:var(--amber);color:var(--ink);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span class="brand-text" data-i18n="brand">El Grande Teremoto<small data-i18n="brandSub">Family Emergency Protocol · Stockton, CA</small></span>
+    </div>
+    <nav class="tabs">
+      <a href="#protocol" data-i18n="navProtocol">Protocol</a>
+      <a href="#meetup" data-i18n="navMeetup">Meetup Zone</a>
+      <a href="#roles" data-i18n="navRoles">Roles</a>
+      <a href="#supplies" data-i18n="navSupplies">Supplies</a>
+      <a href="#live" data-i18n="navLive">Live Feed</a>
+      <a href="#resources" data-i18n="navResources">Resources</a>
+    </nav>
+    <div class="langtoggle">
+      <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+      <button id="btn-es" onclick="setLang('es')">ES</button>
+    </div>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="epicenter">
+    <div class="ring r1"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+    <div class="dot"></div>
+  </div>
+  <div class="eyebrow" data-i18n="heroEyebrow">Family Protocol — Read Before You Need It</div>
+  <h1 data-i18n-html="heroTitle">EL GRANDE TEREMOTO<span class="sub">THE BIG EARTHQUAKE</span></h1>
+  <p class="tag" data-i18n="heroTag">One plan, followed calmly, is worth more than ten plans no one remembers. This is ours.</p>
+  <a href="#protocol" class="cta" data-i18n="heroCta">Start the protocol ↓</a>
+</section>
+
+<div class="status">
+  <div class="status-inner">
+    <div class="status-item">
+      <span class="k" data-i18n="statCashK">Cash Reserve</span>
+      <span class="v" data-i18n="statCashV">$1,000 secured</span>
+    </div>
+    <div class="status-item">
+      <span class="k" data-i18n="statMedK">Medical</span>
+      <span class="v" data-i18n="statMedV">Kits secured</span>
+    </div>
+    <div class="status-item">
+      <span class="k" data-i18n="statZoneK">Meetup Zone</span>
+      <span class="v" data-i18n="statZoneV">Victory Park ready</span>
+    </div>
+    <div class="status-item">
+      <span class="k" data-i18n="statRadioK">Comms</span>
+      <span class="v" data-i18n="statRadioV">3 radios on-site</span>
+    </div>
+  </div>
+</div>
+
+<section id="protocol">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="num" data-i18n="p1num">01 — DURING THE SHAKING</span>
+      <h2 data-i18n="p1h">Right now, in the moment</h2>
+      <p data-i18n="p1p">Before anything else, everyone follows the same three moves. This is not optional and it is not the time to run outside.</p>
+    </div>
+    <ul class="protocol">
+      <li><h4 data-i18n="p1s1h">Drop, Cover, Hold On</h4><p data-i18n="p1s1p">Drop to your hands and knees, get under a sturdy table or against an interior wall away from windows, and hold on until the shaking fully stops.</p></li>
+      <li><h4 data-i18n="p1s2h">Do not run outside</h4><p data-i18n="p1s2p">Most injuries happen from falling objects, not collapsing buildings. Stay where you are and stay low until it's over.</p></li>
+      <li><h4 data-i18n="p1s3h">Stay calm, stay quiet, listen</h4><p data-i18n="p1s3p">Panic spreads faster than the shaking does. A calm voice keeps kids and pets calm too.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="dark" id="after">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="num" data-i18n="p2num">02 — FIRST 10 MINUTES</span>
+      <h2 data-i18n="p2h">Once the shaking stops</h2>
+      <p data-i18n="p2p">Work through this in order. Head count comes before phones. Water comes before comfort.</p>
+    </div>
+    <ul class="protocol">
+      <li><h4 data-i18n="p2s1h">Head count — first, always</h4><p data-i18n="p2s1p">Account for every person in the house by name before doing anything else, including before picking up a phone.</p></li>
+      <li><h4 data-i18n="p2s2h">Phones and recording come second</h4><p data-i18n="p2s2p">Once everyone is accounted for, then check messages, call out, or record. Not before.</p></li>
+      <li><h4 data-i18n="p2s3h">Check injuries — med kits are already staged</h4><p data-i18n="p2s3p">The medical kits are pre-packed and stored safely. Grab one immediately if anyone is hurt.</p></li>
+      <li><h4 data-i18n="p2s4h">Grab the $1,000 cash and key documents</h4><p data-i18n="p2s4p">The emergency cash is already set aside and safe. Take it along with IDs, insurance papers, and anything irreplaceable — only if it's safe to move through the house.</p></li>
+      <li><h4 data-i18n="p2s5h">Water — get it immediately</h4><p data-i18n="p2s5p">Grab cases of water right away, or fill every container you have if the tap is still running. Everyone drinks and stays hydrated — this is not optional.</p></li>
+      <li><h4 data-i18n="p2s6h">Take the important things from home</h4><p data-i18n="p2s6p">Medications, chargers, a change of clothes, pet supplies — if there's time and it's safe, grab it on the way out.</p></li>
+      <li><h4 data-i18n="p2s7h">Move to Victory Park together</h4><p data-i18n="p2s7p">Walk or drive to the open meadow area of Victory Park — away from trees, poles, and buildings. Stay close together as a family.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section id="meetup">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="num" data-i18n="p3num">03 — MEETUP ZONE</span>
+      <h2 data-i18n="p3h">Victory Park — open field</h2>
+      <p data-i18n="p3p">If anyone is separated from the family, this is where we regroup. No exceptions.</p>
+    </div>
+    <div class="grid2">
+      <div id="map"></div>
+      <div class="meet-card">
+        <div class="loc" data-i18n="meetLoc">Victory Park</div>
+        <div class="addr mono" data-i18n="meetAddr">Stockton, CA · open meadow area only</div>
+        <ul class="meet-list">
+          <li><span class="bullet">→</span><span data-i18n="meetL1">Go to the open, grassy area of the park — no trees, no power lines, no structures overhead.</span></li>
+          <li><span class="bullet">→</span><span data-i18n="meetL2">Three walkie-talkies will be distributed on-site once the family regroups.</span></li>
+          <li><span class="bullet">→</span><span data-i18n="meetL3">Do a head count again on arrival, and every time someone leaves or returns.</span></li>
+          <li><span class="bullet">→</span><span data-i18n="meetL4">Stay together as a group. No one wanders off alone.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="roles">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="num" data-i18n="p4num">04 — WHO DOES WHAT</span>
+      <h2 data-i18n="p4h">Roles, so no one has to ask</h2>
+      <p data-i18n="p4p">Everyone already knows their job. That's what makes the first hour calmer.</p>
+    </div>
+    <div class="roles-grid">
+      <div class="role-card">
+        <h4 data-i18n="r1h">Supply &amp; Safety Team</h4>
+        <div class="names">
+          <span class="name-chip">Edwin</span><span class="name-chip" data-i18n="dad">Dad</span><span class="name-chip">Miguel</span><span class="name-chip">Jose</span><span class="name-chip">Juan</span>
+        </div>
+        <p class="desc" data-i18n="r1d">Keep everything situated at home, run out for supplies, and scout nearby areas that are unaffected for camping or shelter if the house isn't safe to stay in. Stay alert and protected at all times.</p>
+        <p class="note" data-i18n="r1n">Juan: power banks &amp; lights on hand</p>
+      </div>
+      <div class="role-card">
+        <h4 data-i18n="r2h">Food &amp; Comfort Team</h4>
+        <div class="names">
+          <span class="name-chip">Ziri</span><span class="name-chip">Reyna</span><span class="name-chip" data-i18n="mom">Mom</span>
+        </div>
+        <p class="desc" data-i18n="r2d">Prepare food and snacks for the family, keep everyone fed on a schedule, and help manage comfort and morale while the situation settles.</p>
+      </div>
+      <div class="role-card">
+        <h4 data-i18n="r3h">Overnight Watch</h4>
+        <div class="names">
+          <span class="name-chip" data-i18n="everyone">Everyone rotates</span>
+        </div>
+        <p class="desc" data-i18n="r3d">One person stays awake at all times if camping outside or sheltering overnight. Switch on a rotation so everyone gets real rest.</p>
+      </div>
+    </div>
+    <div class="watch-band">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+      <p data-i18n="watchNote"><strong>Follow official guidance.</strong> Keep a battery or hand-crank radio on hand and follow local radio broadcasts or official police and emergency instructions above anything else you hear secondhand.</p>
+    </div>
+  </div>
+</section>
+
+<section id="pets">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="num" data-i18n="p5num">05 — PETS</span>
+      <h2 data-i18n="p5h">They feel it too</h2>
+      <p data-i18n="p5p">Pets pick up on stress fast. Keeping them steady helps keep everyone steady.</p>
+    </div>
+    <ul class="protocol">
+      <li><h4 data-i18n="petS1h">Food and water, every time</h4><p data-i18n="petS1p">Make sure every pet has fresh food and water at the meetup zone and wherever the family settles.</p></li>
+      <li><h4 data-i18n="petS2h">Keep them cool and calm</h4><p data-i18n="petS2p">Use shade, air conditioning if available, and a calm, familiar voice. A stressed pet needs quiet, not attention from everyone at once.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="dark" id="supplies">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="num" data-i18n="p6num">06 — SUPPLIES CHECKLIST</span>
+      <h2 data-i18n="p6h">Grab-and-go list</h2>
+      <p data-i18n="p6p">Check items off as they're packed. This resets when the page reloads — it's a packing aid, not a permanent record.</p>
+    </div>
+    <ul class="checklist" id="checklist"></ul>
+  </div>
+</section>
+
+<section id="live">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="live-badge"><span class="live-dot"></span><span data-i18n="liveBadge">Live · USGS Earthquake Feed</span></span>
+      <span class="num" data-i18n="p7num">07 — CURRENT SEISMIC ACTIVITY</span>
+      <h2 data-i18n="p7h">What's happening right now</h2>
+      <p data-i18n="p7p">Pulled live from the U.S. Geological Survey. California activity on the map, significant global events in the list below.</p>
+    </div>
+  </div>
+  <div class="wrap" style="max-width:1120px;">
+    <div id="map-live"></div>
+  </div>
+  <div class="wrap">
+    <div class="feed-cols">
+      <div>
+        <div class="feed-status" id="ca-status" data-i18n="loadingCA">Loading California activity…</div>
+        <ul class="feed-list" id="feed-ca"></ul>
+      </div>
+      <div>
+        <div class="feed-status" id="world-status" data-i18n="loadingWorld">Loading global significant events…</div>
+        <ul class="feed-list" id="feed-world"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="resources">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="num" data-i18n="p8num">08 — EMERGENCY RESOURCES</span>
+      <h2 data-i18n="p8h">California earthquake resources</h2>
+      <p data-i18n="p8p">Save this page or write these down. Cell networks can be overloaded right after a major quake.</p>
+    </div>
+    <div class="res-grid">
+      <div class="res-card">
+        <div class="name" data-i18n="res1n">Emergency (life-threatening)</div>
+        <div class="desc" data-i18n="res1d">Fire, medical, police — immediate danger</div>
+        <a class="tel" href="tel:911">911</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res2n">San Joaquin County OES</div>
+        <div class="desc" data-i18n="res2d">Local office of emergency services</div>
+        <a class="tel" href="tel:2094688700">(209) 468-8700</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res3n">211 California</div>
+        <div class="desc" data-i18n="res3d">Non-emergency local help, shelters, resources</div>
+        <a class="tel" href="tel:211">211</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res4n">American Red Cross</div>
+        <div class="desc" data-i18n="res4d">Shelters, disaster relief assistance</div>
+        <a class="tel" href="tel:18007332767">1-800-733-2767</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res5n">FEMA Disaster Assistance</div>
+        <div class="desc" data-i18n="res5d">Federal disaster aid &amp; applications</div>
+        <a class="tel" href="tel:18006213362">1-800-621-3362</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res6n">PG&amp;E Emergency Line</div>
+        <div class="desc" data-i18n="res6d">Gas leaks, downed power lines, outages</div>
+        <a class="tel" href="tel:18007435000">1-800-743-5000</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res7n">Poison Control</div>
+        <div class="desc" data-i18n="res7d">24/7 poisoning &amp; exposure hotline</div>
+        <a class="tel" href="tel:18002221222">1-800-222-1222</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res8n">CA Governor's OES</div>
+        <div class="desc" data-i18n="res8d">Statewide emergency coordination</div>
+        <a class="tel" href="tel:19168452544">(916) 845-8510</a>
+      </div>
+      <div class="res-card">
+        <div class="name" data-i18n="res9n">USGS Earthquake Info</div>
+        <div class="desc" data-i18n="res9d">Real-time earthquake data (web)</div>
+        <span class="tel mono" style="font-size:14px;">earthquake.usgs.gov</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span data-i18n="footerText">Keep this page saved offline. Stay calm — <strong>stay together</strong>.</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------------- i18n ---------------- */
+const translations = {
+  en: {
+    brand:"El Grande Teremoto", brandSub:"Family Emergency Protocol · Stockton, CA",
+    navProtocol:"Protocol", navMeetup:"Meetup Zone", navRoles:"Roles", navSupplies:"Supplies", navLive:"Live Feed", navResources:"Resources",
+    heroEyebrow:"Family Protocol — Read Before You Need It",
+    heroTag:"One plan, followed calmly, is worth more than ten plans no one remembers. This is ours.",
+    heroCta:"Start the protocol ↓",
+    statCashK:"Cash Reserve", statCashV:"$1,000 secured",
+    statMedK:"Medical", statMedV:"Kits secured",
+    statZoneK:"Meetup Zone", statZoneV:"Victory Park ready",
+    statRadioK:"Comms", statRadioV:"3 radios on-site",
+    p1num:"01 — DURING THE SHAKING", p1h:"Right now, in the moment",
+    p1p:"Before anything else, everyone follows the same three moves. This is not optional and it is not the time to run outside.",
+    p1s1h:"Drop, Cover, Hold On", p1s1p:"Drop to your hands and knees, get under a sturdy table or against an interior wall away from windows, and hold on until the shaking fully stops.",
+    p1s2h:"Do not run outside", p1s2p:"Most injuries happen from falling objects, not collapsing buildings. Stay where you are and stay low until it's over.",
+    p1s3h:"Stay calm, stay quiet, listen", p1s3p:"Panic spreads faster than the shaking does. A calm voice keeps kids and pets calm too.",
+    p2num:"02 — FIRST 10 MINUTES", p2h:"Once the shaking stops",
+    p2p:"Work through this in order. Head count comes before phones. Water comes before comfort.",
+    p2s1h:"Head count — first, always", p2s1p:"Account for every person in the house by name before doing anything else, including before picking up a phone.",
+    p2s2h:"Phones and recording come second", p2s2p:"Once everyone is accounted for, then check messages, call out, or record. Not before.",
+    p2s3h:"Check injuries — med kits are already staged", p2s3p:"The medical kits are pre-packed and stored safely. Grab one immediately if anyone is hurt.",
+    p2s4h:"Grab the $1,000 cash and key documents", p2s4p:"The emergency cash is already set aside and safe. Take it along with IDs, insurance papers, and anything irreplaceable — only if it's safe to move through the house.",
+    p2s5h:"Water — get it immediately", p2s5p:"Grab cases of water right away, or fill every container you have if the tap is still running. Everyone drinks and stays hydrated — this is not optional.",
+    p2s6h:"Take the important things from home", p2s6p:"Medications, chargers, a change of clothes, pet supplies — if there's time and it's safe, grab it on the way out.",
+    p2s7h:"Move to Victory Park together", p2s7p:"Walk or drive to the open meadow area of Victory Park — away from trees, poles, and buildings. Stay close together as a family.",
+    p3num:"03 — MEETUP ZONE", p3h:"Victory Park — open field",
+    p3p:"If anyone is separated from the family, this is where we regroup. No exceptions.",
+    meetLoc:"Victory Park", meetAddr:"Stockton, CA · open meadow area only",
+    meetL1:"Go to the open, grassy area of the park — no trees, no power lines, no structures overhead.",
+    meetL2:"Three walkie-talkies will be distributed on-site once the family regroups.",
+    meetL3:"Do a head count again on arrival, and every time someone leaves or returns.",
+    meetL4:"Stay together as a group. No one wanders off alone.",
+    p4num:"04 — WHO DOES WHAT", p4h:"Roles, so no one has to ask",
+    p4p:"Everyone already knows their job. That's what makes the first hour calmer.",
+    r1h:"Supply & Safety Team", dad:"Dad",
+    r1d:"Keep everything situated at home, run out for supplies, and scout nearby areas that are unaffected for camping or shelter if the house isn't safe to stay in. Stay alert and protected at all times.",
+    r1n:"Juan: power banks & lights on hand",
+    r2h:"Food & Comfort Team", mom:"Mom",
+    r2d:"Prepare food and snacks for the family, keep everyone fed on a schedule, and help manage comfort and morale while the situation settles.",
+    r3h:"Overnight Watch", everyone:"Everyone rotates",
+    r3d:"One person stays awake at all times if camping outside or sheltering overnight. Switch on a rotation so everyone gets real rest.",
+    watchNote:"<strong>Follow official guidance.</strong> Keep a battery or hand-crank radio on hand and follow local radio broadcasts or official police and emergency instructions above anything else you hear secondhand.",
+    p5num:"05 — PETS", p5h:"They feel it too", p5p:"Pets pick up on stress fast. Keeping them steady helps keep everyone steady.",
+    petS1h:"Food and water, every time", petS1p:"Make sure every pet has fresh food and water at the meetup zone and wherever the family settles.",
+    petS2h:"Keep them cool and calm", petS2p:"Use shade, air conditioning if available, and a calm, familiar voice. A stressed pet needs quiet, not attention from everyone at once.",
+    p6num:"06 — SUPPLIES CHECKLIST", p6h:"Grab-and-go list",
+    p6p:"Check items off as they're packed. This resets when the page reloads — it's a packing aid, not a permanent record.",
+    liveBadge:"Live · USGS Earthquake Feed",
+    p7num:"07 — CURRENT SEISMIC ACTIVITY", p7h:"What's happening right now",
+    p7p:"Pulled live from the U.S. Geological Survey. California activity on the map, significant global events in the list below.",
+    loadingCA:"Loading California activity…", loadingWorld:"Loading global significant events…",
+    p8num:"08 — EMERGENCY RESOURCES", p8h:"California earthquake resources",
+    p8p:"Save this page or write these down. Cell networks can be overloaded right after a major quake.",
+    res1n:"Emergency (life-threatening)", res1d:"Fire, medical, police — immediate danger",
+    res2n:"San Joaquin County OES", res2d:"Local office of emergency services",
+    res3n:"211 California", res3d:"Non-emergency local help, shelters, resources",
+    res4n:"American Red Cross", res4d:"Shelters, disaster relief assistance",
+    res5n:"FEMA Disaster Assistance", res5d:"Federal disaster aid & applications",
+    res6n:"PG&E Emergency Line", res6d:"Gas leaks, downed power lines, outages",
+    res7n:"Poison Control", res7d:"24/7 poisoning & exposure hotline",
+    res8n:"CA Governor's OES", res8d:"Statewide emergency coordination",
+    res9n:"USGS Earthquake Info", res9d:"Real-time earthquake data (web)",
+    footerText:'Keep this page saved offline. Stay calm — <strong>stay together</strong>.',
+    heroTitleMain:"EL GRANDE TEREMOTO", heroTitleSub:"THE BIG EARTHQUAKE",
+  },
+  es: {
+    brand:"El Grande Teremoto", brandSub:"Protocolo Familiar de Emergencia · Stockton, CA",
+    navProtocol:"Protocolo", navMeetup:"Punto de Reunión", navRoles:"Roles", navSupplies:"Suministros", navLive:"En Vivo", navResources:"Recursos",
+    heroEyebrow:"Protocolo Familiar — Léelo Antes de Necesitarlo",
+    heroTag:"Un plan seguido con calma vale más que diez planes que nadie recuerda. Este es el nuestro.",
+    heroCta:"Ver el protocolo ↓",
+    statCashK:"Reserva de Efectivo", statCashV:"$1,000 asegurados",
+    statMedK:"Médico", statMedV:"Botiquines seguros",
+    statZoneK:"Punto de Reunión", statZoneV:"Victory Park listo",
+    statRadioK:"Comunicación", statRadioV:"3 radios listos",
+    p1num:"01 — DURANTE EL TEMBLOR", p1h:"En este momento, mientras tiembla",
+    p1p:"Antes que nada, todos siguen los mismos tres pasos. Esto no es opcional y no es momento de correr afuera.",
+    p1s1h:"Agáchate, Cúbrete, Sujétate", p1s1p:"Agáchate sobre manos y rodillas, cúbrete bajo una mesa resistente o contra una pared interior lejos de ventanas, y sujétate hasta que el temblor termine por completo.",
+    p1s2h:"No corras hacia afuera", p1s2p:"La mayoría de las lesiones ocurren por objetos que caen, no por edificios que colapsan. Quédate donde estás y mantente agachado hasta que termine.",
+    p1s3h:"Mantén la calma, guarda silencio, escucha", p1s3p:"El pánico se contagia más rápido que el temblor mismo. Una voz calmada mantiene tranquilos también a los niños y las mascotas.",
+    p2num:"02 — LOS PRIMEROS 10 MINUTOS", p2h:"Cuando el temblor se detenga",
+    p2p:"Sigue este orden. El conteo de personas va antes que los teléfonos. El agua va antes que la comodidad.",
+    p2s1h:"Conteo de personas — primero, siempre", p2s1p:"Confirma la presencia de cada persona en la casa por nombre antes de hacer cualquier otra cosa, incluso antes de tomar el teléfono.",
+    p2s2h:"Teléfonos y grabaciones van después", p2s2p:"Una vez que todos estén contados, revisa mensajes, llama o graba. No antes.",
+    p2s3h:"Revisa heridas — los botiquines ya están listos", p2s3p:"Los botiquines médicos ya están empacados y guardados en un lugar seguro. Toma uno de inmediato si alguien está herido.",
+    p2s4h:"Toma los $1,000 en efectivo y documentos importantes", p2s4p:"El efectivo de emergencia ya está apartado y seguro. Tómalo junto con identificaciones, papeles de seguro y cualquier cosa irremplazable — solo si es seguro moverse por la casa.",
+    p2s5h:"Agua — consíguela de inmediato", p2s5p:"Toma cajas de agua de inmediato, o llena todos los recipientes que tengas si aún sale agua de la llave. Todos deben tomar agua y mantenerse hidratados — esto no es opcional.",
+    p2s6h:"Lleva las cosas importantes de la casa", p2s6p:"Medicamentos, cargadores, ropa de cambio, artículos para mascotas — si hay tiempo y es seguro, tómalos al salir.",
+    p2s7h:"Vayan juntos a Victory Park", p2s7p:"Caminen o manejen hasta el área abierta de pradera de Victory Park — lejos de árboles, postes y edificios. Manténganse juntos como familia.",
+    p3num:"03 — PUNTO DE REUNIÓN", p3h:"Victory Park — área abierta",
+    p3p:"Si alguien se separa de la familia, aquí es donde nos reunimos de nuevo. Sin excepciones.",
+    meetLoc:"Victory Park", meetAddr:"Stockton, CA · solo el área de pradera abierta",
+    meetL1:"Vayan al área abierta y de pasto del parque — sin árboles, sin cables de luz, sin estructuras arriba.",
+    meetL2:"Se repartirán tres radios walkie-talkie en el lugar en cuanto la familia se reúna.",
+    meetL3:"Hagan un conteo de personas otra vez al llegar, y cada vez que alguien se vaya o regrese.",
+    meetL4:"Manténganse juntos como grupo. Nadie se aleja solo.",
+    p4num:"04 — QUIÉN HACE QUÉ", p4h:"Roles, para que nadie tenga que preguntar",
+    p4p:"Todos ya conocen su tarea. Eso es lo que hace más tranquila la primera hora.",
+    r1h:"Equipo de Suministros y Seguridad", dad:"Papá",
+    r1d:"Mantengan todo en orden en casa, salgan por suministros, y busquen áreas cercanas no afectadas para acampar o refugiarse si la casa no es segura. Manténganse alerta y protegidos en todo momento.",
+    r1n:"Juan: power banks y luces disponibles",
+    r2h:"Equipo de Comida y Bienestar", mom:"Mamá",
+    r2d:"Preparen comida y snacks para la familia, mantengan a todos alimentados con un horario, y ayuden a mantener la calma y el ánimo mientras se resuelve la situación.",
+    r3h:"Guardia Nocturna", everyone:"Todos se turnan",
+    r3d:"Una persona se mantiene despierta en todo momento si acampan afuera o se refugian por la noche. Túrnense para que todos descansen de verdad.",
+    watchNote:"<strong>Sigan las indicaciones oficiales.</strong> Tengan a la mano un radio de baterías o de manivela y sigan las transmisiones de radio locales o las instrucciones oficiales de la policía y emergencias por encima de cualquier otra cosa que escuchen de segunda mano.",
+    p5num:"05 — MASCOTAS", p5h:"Ellas también lo sienten", p5p:"Las mascotas captan el estrés rápidamente. Mantenerlas estables ayuda a que todos se mantengan estables.",
+    petS1h:"Comida y agua, siempre", petS1p:"Asegúrense de que cada mascota tenga comida y agua fresca en el punto de reunión y donde sea que la familia se asiente.",
+    petS2h:"Mantenlas frescas y tranquilas", petS2p:"Usen sombra, aire acondicionado si es posible, y una voz calmada y familiar. Una mascota estresada necesita tranquilidad, no la atención de todos a la vez.",
+    p6num:"06 — LISTA DE SUMINISTROS", p6h:"Lista para salir rápido",
+    p6p:"Marca los artículos conforme los empaquen. Esta lista se reinicia al recargar la página — es una ayuda para empacar, no un registro permanente.",
+    liveBadge:"En Vivo · Feed de Terremotos USGS",
+    p7num:"07 — ACTIVIDAD SÍSMICA ACTUAL", p7h:"Lo que está pasando ahora mismo",
+    p7p:"Datos en vivo del Servicio Geológico de EE. UU. (USGS). Actividad de California en el mapa, eventos globales significativos en la lista de abajo.",
+    loadingCA:"Cargando actividad de California…", loadingWorld:"Cargando eventos globales significativos…",
+    p8num:"08 — RECURSOS DE EMERGENCIA", p8h:"Recursos de terremotos en California",
+    p8p:"Guarda esta página o anota estos números. Las redes celulares pueden saturarse justo después de un sismo mayor.",
+    res1n:"Emergencia (peligro de vida)", res1d:"Bomberos, médico, policía — peligro inmediato",
+    res2n:"OES del Condado de San Joaquín", res2d:"Oficina local de servicios de emergencia",
+    res3n:"211 California", res3d:"Ayuda local no urgente, refugios, recursos",
+    res4n:"Cruz Roja Americana", res4d:"Refugios, asistencia por desastres",
+    res5n:"Asistencia de FEMA", res5d:"Ayuda federal por desastres y solicitudes",
+    res6n:"Línea de Emergencia de PG&E", res6d:"Fugas de gas, cables caídos, apagones",
+    res7n:"Control de Envenenamiento", res7d:"Línea 24/7 de envenenamiento y exposición",
+    res8n:"OES del Gobernador de CA", res8d:"Coordinación estatal de emergencias",
+    res9n:"Información de USGS", res9d:"Datos de terremotos en tiempo real (web)",
+    footerText:'Guarda esta página sin conexión. Mantengan la calma — <strong>manténganse juntos</strong>.',
+    heroTitleMain:"EL GRANDE TEREMOTO", heroTitleSub:"THE BIG EARTHQUAKE",
+  }
+};
+
+function renderHeroTitle(lang){
+  const el = document.querySelector('[data-i18n-html="heroTitle"]');
+  const t = translations[lang];
+  el.innerHTML = t.heroTitleMain + '<span class="sub">' + t.heroTitleSub + '</span>';
+}
+
+function setLang(lang){
+  document.documentElement.lang = lang;
+  document.getElementById('btn-en').classList.toggle('active', lang==='en');
+  document.getElementById('btn-es').classList.toggle('active', lang==='es');
+  const dict = translations[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(dict[key] !== undefined){
+      if(key === 'watchNote' || key === 'footerText'){
+        el.innerHTML = dict[key];
+      } else {
+        el.textContent = dict[key];
+      }
+    }
+  });
+  renderHeroTitle(lang);
+  renderChecklist(lang);
+}
+
+/* ---------------- Checklist ---------------- */
+const checklistItems = {
+  en: ["Water — cases + refill containers","$1,000 emergency cash","Medical kits (x2+)","Walkie-talkies (kept at Victory Park)","Power banks & flashlights (Juan)","Phone chargers & cables","Medications & prescriptions","Copies of ID / insurance / documents","Non-perishable food & snacks","Pet food, water bowl & leash","Change of clothes per person","Battery or hand-crank radio","Flashlight or lantern per person","Basic tools & duct tape","Blankets or sleeping bags"],
+  es: ["Agua — cajas + rellenar recipientes","$1,000 en efectivo de emergencia","Botiquines médicos (2+)","Radios walkie-talkie (en Victory Park)","Power banks y linternas (Juan)","Cargadores y cables de teléfono","Medicamentos y recetas","Copias de identificación / seguro / documentos","Comida no perecedera y snacks","Comida, agua y correa para mascotas","Muda de ropa por persona","Radio de baterías o manivela","Linterna o lámpara por persona","Herramientas básicas y cinta adhesiva","Cobijas o sacos de dormir"]
+};
+function renderChecklist(lang){
+  const ul = document.getElementById('checklist');
+  const items = checklistItems[lang];
+  const prevChecked = Array.from(ul.querySelectorAll('input')).map(i=>i.checked);
+  ul.innerHTML = '';
+  items.forEach((label,i)=>{
+    const li = document.createElement('li');
+    const id = 'chk'+i;
+    li.innerHTML = `<input type="checkbox" id="${id}" ${prevChecked[i] ? 'checked':''}><label for="${id}">${label}</label>`;
+    ul.appendChild(li);
+  });
+}
+
+/* ---------------- Maps ---------------- */
+const VICTORY_PARK = [37.9578, -121.2930];
+const meetupMap = L.map('map', {zoomControl:true, scrollWheelZoom:false}).setView(VICTORY_PARK, 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© OpenStreetMap contributors', maxZoom:19
+}).addTo(meetupMap);
+L.marker(VICTORY_PARK).addTo(meetupMap).bindPopup('Victory Park — meetup zone');
+
+const liveMap = L.map('map-live', {zoomControl:true, scrollWheelZoom:false}).setView([37.2, -119.5], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© OpenStreetMap contributors', maxZoom:19
+}).addTo(liveMap);
+L.marker(VICTORY_PARK).addTo(liveMap).bindPopup('Home base — Victory Park, Stockton');
+
+function magColor(m){
+  if(m>=5) return '#C1442E';
+  if(m>=3) return '#D9922B';
+  return '#1F6F5C';
+}
+function timeAgo(ms){
+  const diff = Date.now()-ms;
+  const mins = Math.floor(diff/60000);
+  if(mins < 60) return mins+'m ago';
+  const hrs = Math.floor(mins/60);
+  if(hrs < 24) return hrs+'h ago';
+  return Math.floor(hrs/24)+'d ago';
+}
+
+async function loadCaliforniaFeed(){
+  const statusEl = document.getElementById('ca-status');
+  const listEl = document.getElementById('feed-ca');
+  try{
+    const url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=' +
+      new Date(Date.now()-30*86400000).toISOString().slice(0,10) +
+      '&minmagnitude=2.0&maxlatitude=42.1&minlatitude=32.4&maxlongitude=-114.0&minlongitude=-124.6&orderby=time&limit=15';
+    const res = await fetch(url);
+    const data = await res.json();
+    statusEl.textContent = data.features.length + ' events · past 30 days · California';
+    listEl.innerHTML = '';
+    data.features.forEach(f=>{
+      const m = f.properties.mag ? f.properties.mag.toFixed(1) : '—';
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="feed-mag" style="color:${magColor(f.properties.mag||0)};border:1px solid ${magColor(f.properties.mag||0)};">${m}</span>
+        <span class="feed-place">${f.properties.place || 'Unknown location'}</span>
+        <span class="feed-time">${timeAgo(f.properties.time)}</span>`;
+      listEl.appendChild(li);
+      const [lon,lat] = f.geometry.coordinates;
+      L.circleMarker([lat,lon], {
+        radius: Math.max(4,(f.properties.mag||1)*2.2),
+        color: magColor(f.properties.mag||0),
+        fillColor: magColor(f.properties.mag||0),
+        fillOpacity:0.55, weight:1
+      }).addTo(liveMap).bindPopup(`M${m} — ${f.properties.place}`);
+    });
+    if(data.features.length===0){
+      listEl.innerHTML = '<li style="border-top:none;color:#8B979D;">No events above M2.0 in the past 30 days.</li>';
+    }
+  }catch(e){
+    statusEl.textContent = 'Live data unavailable right now — check earthquake.usgs.gov directly.';
+  }
+}
+
+async function loadWorldFeed(){
+  const statusEl = document.getElementById('world-status');
+  const listEl = document.getElementById('feed-world');
+  try{
+    const res = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson');
+    const data = await res.json();
+    statusEl.textContent = data.features.length + ' significant events · past 30 days · worldwide';
+    listEl.innerHTML = '';
+    data.features.slice(0,12).forEach(f=>{
+      const m = f.properties.mag ? f.properties.mag.toFixed(1) : '—';
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="feed-mag" style="color:${magColor(f.properties.mag||0)};border:1px solid ${magColor(f.properties.mag||0)};">${m}</span>
+        <span class="feed-place">${f.properties.place || 'Unknown location'}</span>
+        <span class="feed-time">${timeAgo(f.properties.time)}</span>`;
+      listEl.appendChild(li);
+    });
+  }catch(e){
+    statusEl.textContent = 'Live data unavailable right now — check earthquake.usgs.gov directly.';
+  }
+}
+
+loadCaliforniaFeed();
+loadWorldFeed();
+setInterval(loadCaliforniaFeed, 5*60*1000);
+setInterval(loadWorldFeed, 5*60*1000);
+
+/* init */
+renderHeroTitle('en');
+renderChecklist('en');
+</script>
+</body>
+</html>
